@@ -310,10 +310,10 @@ def set_megabas(stack, output, channel, value):
         try:
             megabas.setUOut(stack, channel, value)
             value = megabas.getUOut(stack, channel)
-            client.publish(DEVICE + '/megabas/' + str(stack) + '/input/0_10/' + str(channel), value, MQTT_QOS)
+            client.publish(DEVICE + '/megabas/' + str(stack) + '/response/0_10/' + str(channel), value, MQTT_QOS)
         except:
-            print("Can't set megabas stack: " + str(stack) + ", input: 0_10, channel: " + str(channel) + " to value: " + str(value))
-            raise("Can't set megabas stack: " + str(stack) + ", input: 0_10, channel: " + str(channel) + " to value: " + str(value))
+            print("Can't set megabas stack: " + str(stack) + ", response: 0_10, channel: " + str(channel) + " to value: " + str(value))
+            raise("Can't set megabas stack: " + str(stack) + ", response: 0_10, channel: " + str(channel) + " to value: " + str(value))
         else:
             cache[stack]["response"]["0_10"][channel - 1] = value
     elif output == "triac":
@@ -324,10 +324,10 @@ def set_megabas(stack, output, channel, value):
                 value = 1
             else:
                 value = 0
-            client.publish(DEVICE + '/megabas/' + str(stack) + '/input/triac/' + str(channel), value, MQTT_QOS)
+            client.publish(DEVICE + '/megabas/' + str(stack) + '/response/triac/' + str(channel), value, MQTT_QOS)
         except:
-            print("Can't set megabas stack: " + str(stack) + ", input: triac, channel: " + str(channel) + " to value: " + str(value))
-            raise("Can't set megabas stack: " + str(stack) + ", input: triac, channel: " + str(channel) + " to value: " + str(value))
+            print("Can't set megabas stack: " + str(stack) + ", response: triac, channel: " + str(channel) + " to value: " + str(value))
+            raise("Can't set megabas stack: " + str(stack) + ", response: triac, channel: " + str(channel) + " to value: " + str(value))
         else:
             cache[stack]["response"]["triac"][channel - 1] = value
     elif output == "cont_rce":
