@@ -242,18 +242,22 @@ def watchdog_megaind(stack, mode):
 
 
 def get_megabas(stack, init):
+    triacs = megabas.getTriacs(stack)
     for channel in range(1,5):
         value = megabas.getUOut(stack, channel)
         if init or value != cache[stack]["response"]["0_10"][channel - 1]:
             client.publish(DEVICE + '/megabas/' + str(stack) + '/response/0_10/' + str(channel), value, MQTT_QOS)
             cache[stack]["response"]["0_10"][channel - 1] = value
-
-        value = megabas.getOdPWM(stack, channel)
+        
+        if triacs & (1 << channel - 1):
+            value = 1
+        else:
+            value = 0
         if init or value != cache[stack]["response"]["triac"][channel - 1]:
-            client.publish(DEVICE + '/megabas/' + str(stack) + '/response/pwm/' + str(channel), value, MQTT_QOS)
-            cache[stack]["response"]["pwm"][channel - 1] = value
+            client.publish(DEVICE + '/megabas/' + str(stack) + '/response/triac/' + str(channel), value, MQTT_QOS)
+            cache[stack]["response"]["triac"][channel - 1] = value
 
-    for channel in range(1,8):
+    for channel in range(1,9):
         value = round(megabas.getUIn(stack, channel),2)
         if init or value != cache[stack]["input"]["0_10"][channel - 1]:
             client.publish(DEVICE + '/megabas/' + str(stack) + '/input/0_10/' + str(channel), value, MQTT_QOS)
@@ -299,6 +303,7 @@ def get_megabas(stack, init):
             client.publish(DEVICE + '/megabas/' + str(stack) + '/response/cont_fce/' + str(channel), value, MQTT_QOS)
             cache[stack]["response"]["cont_fce"][channel - 1] = falling
 
+    megabas.getTriacs(stack)
 
 def set_megabas(stack, output, channel, value):
     if output == "0_10":
@@ -314,8 +319,8 @@ def set_megabas(stack, output, channel, value):
     elif output == "triac":
         try:
             megabas.setTriac(stack, channel, value)
-            value = megabas.getTriacs(stack)
-            if value & (1 << channel):
+            triacs = megabas.getTriacs(stack)
+            if triacs & (1 << channel - 1):
                 value = 1
             else:
                 value = 0
