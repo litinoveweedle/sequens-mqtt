@@ -14,9 +14,9 @@ Wants=network-online.target
 Type=simple
 
 # Command to execute when the service is started
-ExecStart=/home/pi/sequent-mqtt.py
+ExecStart=/home/pi/sequent-mqtt/sequent-mqtt.py
 
-WorkingDirectory=/home/pi
+WorkingDirectory=/home/pi/sequent-mqtt
 
 # Disable Python's buffering of STDOUT and STDERR, so that output from the
 # service shows up immediately in systemd's logs

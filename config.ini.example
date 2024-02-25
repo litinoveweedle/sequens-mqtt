@@ -1,0 +1,24 @@
+[MQTT]
+TOPIC = sequent_control
+SERVER = 192.168.1.1
+PORT = 1883
+QOS = 1
+TIMEOUT = 5
+USER = mqttuser
+PASS = mqttpass
+
+[CARDS]
+STACK0 = megaind
+STACK1 = megabas
+STACK2 = 8relind
+STACK3 = 8inputs
+STACK4 = rtd
+STACK5 =
+STACK6 =
+STACK7 =
+
+
+[WATCHDOG]
+TIMEOUT = 120
+BOOT = 300
+RESET = 10
