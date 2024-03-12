@@ -22,3 +22,10 @@ STACK7 =
 TIMEOUT = 120
 BOOT = 300
 RESET = 10
+
+
+[HEARTBEAT]
+TIMEOUT = 300
+TOPIC_CHALLENGE = heartbeat/ping
+TOPIC_RESPONSE = heartbeat/pong
+

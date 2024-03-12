@@ -18,7 +18,7 @@ cache = [ {}, {}, {}, {}, {}, {}, {}, {} ]
 config = configparser.ConfigParser()
 config.read('config.ini')
 if 'MQTT' in config:
-    for key in [ 'TOPIC', 'SERVER', 'PORT', 'QOS', 'TIMEOUT', 'USER', 'PASS']:
+    for key in ['TOPIC', 'SERVER', 'PORT', 'QOS', 'TIMEOUT', 'USER', 'PASS']:
         if not config['MQTT'][key]:
             print("Missing or empty config entry MQTT/" + key)
             raise("Missing or empty config entry MQTT/" + key)
@@ -40,13 +40,22 @@ else:
     raise("Missing config section CARDS")
 
 if 'WATCHDOG' in config:
-    for key in [ 'TIMEOUT', 'BOOT', 'RESET']:
+    for key in ['TIMEOUT', 'BOOT', 'RESET']:
         if not config['WATCHDOG'][key]:
             print("Missing or empty config entry WATCHDOG/" + key)
             raise("Missing or empty config entry WATCHDOG/" + key)
 else:
     print("Missing config section WATCHDOG")
     raise("Missing config section WATCHDOG")
+
+if 'HEARTBEAT' in config:
+    for key in ['TIMEOUT', 'TOPIC_CHALLENGE', 'TOPIC_RESPONSE']:
+        if not config['HEARTBEAT'][key]:
+            print("Missing or empty config entry HEARTBEAT/" + key)
+            raise("Missing or empty config entry HEARTBEAT/" + key)
+else:
+    print("Missing config section HEARTBEAT")  
+    raise("Missing config section HEARTBEAT")  
 
 
 for stack in cards.keys():
@@ -231,6 +240,12 @@ def set_megaind(stack, output, channel, value):
         raise("Can't set megaind stack: " + str(stack) + ", topic: " + output + ", channel: " + str(channel) + " to value: 0")
 
 
+def reset_megaind(stack):
+    for channel in range(1,5):
+        for output in ( '4_20', '0_10', 'pwm', 'led' ):
+            set_megaind(stack, output, channel, 0)
+
+
 def tele_megaind(stack):
     if megaind.getPowerVolt(stack) < 5:
         return False
@@ -399,6 +414,12 @@ def set_megabas(stack, output, channel, value):
         raise("Can't set megabas stack: " + str(stack) + ", topic: " + output + ", channel: " + str(channel) + " to value: 0")
 
 
+def reset_megabas(stack):
+    for channel in range(1,5):
+        for output in ( '0_10', 'triac' ):
+            set_megabas(stack, output, channel, 0)
+
+
 def tele_megabas(stack):
     if megabas.getInVolt(stack) < 5:
         return False
@@ -454,6 +475,11 @@ def set_8relind(stack, output, channel, value):
         raise("Can't set 8relind stack: " + str(stack) + ", topic: " + output + ", channel: " + str(channel) + " to value: " + str(value))
 
 
+def reset_8relind(stack):
+    for channel in range(1,9):
+        set_8relind(stack, 'relay', channel, 0)
+
+
 def get_8inputs(stack, init):
     for channel in range(1,9):
         value = lib8inputs.get_opto(stack, channel)
@@ -492,6 +518,7 @@ def cards_init():
         else:
             print("Uknown card type " + cards[stack])
             raise NotImplementedError("Uknown card type " + cards[stack])
+    client.subscribe(config['MQTT']['TOPIC'] + '/' + config['HEARTBEAT']['TOPIC_CHALLENGE'])
 
 
 def cards_update(mode):
@@ -546,7 +573,7 @@ def cards_tele(mode):
 
 def cards_watchdog():
     global last_watchdog
-    now = time.time()
+    now = int(time.time())
     if now - last_watchdog > int(config['WATCHDOG']['TIMEOUT']) / 3:
         for stack in cards.keys():
             if cards[stack] == "megaind":
@@ -557,6 +584,27 @@ def cards_watchdog():
         return True
     else:
         return False
+
+
+def check_heartbeat(mode):
+    global last_heartbeat
+    now = int(time.time())
+    if mode == 1:
+        last_heartbeat = now
+        client.publish(config['MQTT']['TOPIC'] + '/' + config['HEARTBEAT']['TOPIC_RESPONSE'], str(now), int(config['MQTT']['QOS']))
+        return True
+    elif int(config['HEARTBEAT']['TIMEOUT']) > 0 and last_heartbeat >= 0 and now - last_heartbeat > int(config['HEARTBEAT']['TIMEOUT']):
+        for stack in cards.keys():
+            if cards[stack] == "megaind":
+                reset_megaind(stack)
+            elif cards[stack] == "megabas":
+                reset_megabas(stack)
+            elif cards[stack] == "8relind":
+                reset_8relind(stack)
+        last_heartbeat = -1
+        return False
+    else:
+        return True
 
 
 def get_time():
@@ -636,11 +684,14 @@ mqtt.Client.reconnect_count = 0
 
 # Imain loop
 run = 1
+last_heartbeat = int(time.time())
 while run:
     try:
         # Init counters
         last_tele = 0
         last_watchdog = 0
+        # Heartbeat check
+        check_heartbeat(0)
         # Create mqtt client
         client = mqtt.Client()
         client.connected_flag = 0
@@ -676,6 +727,9 @@ while run:
             if client.connected_flag:
                 cards_update(0)
                 cards_watchdog()
+                if not check_heartbeat(0):
+                    print("Missing heartbeat, all cards outputs reseted!")
+                    raise("Missing heartbeat, all cards outputs reseted!")
             else:
                 print("MQTT connection lost!")
                 raise("MQTT connection lost!")
