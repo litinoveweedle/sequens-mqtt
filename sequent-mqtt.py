@@ -12,7 +12,7 @@ import sys
 
 # define user-defined exception
 class AppError(Exception):
-    "Raised when the input value is less than 18"
+    "Raised on application error"
     pass
 
 # global variables
@@ -473,7 +473,7 @@ def get_rtd(stack, init):
 
 
 def cards_init():
-    client.subscribe(config['MQTT']['TOPIC'] + '/tele/CMND/+', int(config['MQTT']['QOS']))
+    client.subscribe(config['MQTT']['TOPIC'] + '/tele/cmnd/+', int(config['MQTT']['QOS']))
     cards_tele(1)
     for stack in cards.keys():
         if cards[stack] == "megaind":
@@ -517,7 +517,8 @@ def cards_update(mode):
 
 
 def cards_unsubscribe():
-    client.unsubscribe(config['MQTT']['TOPIC'] + '/tele/CMND/+', int(config['MQTT']['QOS']))
+    client.unsubscribe(config['MQTT']['TOPIC'] + '/tele/cmnd/+', int(config['MQTT']['QOS']))
+    client.unsubscribe(config['MQTT']['TOPIC'] + '/' + config['HEARTBEAT']['TOPIC_CHALLENGE'])
     for stack in cards.keys():
         if cards[stack] == "megaind":
             watchdog_megaind(stack, 2)
@@ -610,7 +611,7 @@ def on_disconnect(client, userdata, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    tele = re.match(r'^' + config['MQTT']['TOPIC'] + '\/tele/CMND\/(state)$', str(msg.topic))
+    tele = re.match(r'^' + config['MQTT']['TOPIC'] + '\/tele/cmnd\/(state)$', str(msg.topic))
     megaind = re.match(r'^' + config['MQTT']['TOPIC'] + '\/megaind\/([0-7])\/output\/(0_10|4_20|pwm|led|opto_rce|opto_fce|opto_rst)\/([1-8])$', str(msg.topic))
     megabas = re.match(r'^' + config['MQTT']['TOPIC'] + '\/megabas\/([0-7])\/output\/(0_10|triac|opto_rce|opto_fce)\/([1-8])$', str(msg.topic))
     relind8 = re.match(r'^' + config['MQTT']['TOPIC'] + '\/8relind\/([0-7])\/output\/(relay)/([1-8])$', str(msg.topic))
